@@ -1,0 +1,8 @@
+[submodule "chatty_api"]
+	path = chatty_api
+	url = git@github.com:youssef1337/chatty_api.git
+	branch = main
+[submodule "chatty_receiver"]
+	path = chatty_receiver
+	url = git@github.com:youssef1337/chatty_receiver.git
+	branch = main
