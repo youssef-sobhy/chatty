@@ -1,0 +1,110 @@
+version: '3.4'
+
+services:
+  redis:
+    image: redis:5.0.7
+    container_name: redis
+    restart: on-failure
+    volumes:
+      - redis_data:/data
+
+  mysql:
+    image: mysql:5.7
+    command: --default-authentication-plugin=mysql_native_password
+    container_name: mysql
+    restart: on-failure
+    environment:
+      MYSQL_ALLOW_EMPTY_PASSWORD: 1
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+  rabbitmq:
+    image: rabbitmq:3.8.10-rc.6-management
+    container_name: rabbitmq
+    restart: on-failure
+    ports:
+      - "15673:15673"
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.10.2
+    container_name: elastic_search
+    restart: on-failure
+    environment:
+      http.host: 0.0.0.0
+      transport.host: 127.0.0.1
+    ports:
+      - 9400:9200
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+
+  chatty_api:
+    container_name: chatty_api
+    restart: on-failure
+    build: ./chatty_api/
+    depends_on:
+      - mysql
+      - redis
+      - elasticsearch
+    ports:
+      - "3000:3000"
+    volumes:
+      - .:/app
+      - gem_cache:/usr/local/bundle/gems
+    env_file: ./chatty_api/.env
+    stdin_open: true
+    tty: true
+    environment:
+      RAILS_ENV: development
+
+  sidekiq:
+    container_name: chatty_api-sidekiq
+    restart: on-failure
+    build: ./chatty_api/
+    depends_on:
+      - mysql
+      - redis
+    volumes:
+      - .:/app
+      - gem_cache:/usr/local/bundle/gems
+    env_file: ./chatty_api/.env
+    stdin_open: true
+    tty: true
+    environment:
+      RAILS_ENV: development
+    entrypoint: ./chatty_api/entrypoints/sidekiq-entrypoint.sh
+
+  sneakers:
+    container_name: chatty_api-sneakers
+    restart: on-failure
+    build: ./chatty_api/
+    depends_on:
+      - mysql
+      - rabbitmq
+      - redis
+    volumes:
+      - .:/app
+      - gem_cache:/usr/local/bundle/gems
+    env_file: ./chatty_api/.env
+    stdin_open: true
+    tty: true
+    environment:
+      RAILS_ENV: development
+    entrypoint: ./chatty_api/entrypoints/sneakers-entrypoint.sh
+
+  chatty_receiver:
+    container_name: chatty_receiver
+    restart: on-failure
+    build: ./chatty_receiver
+    depends_on:
+      - mysql
+      - rabbitmq
+      - redis
+    ports:
+      - 3001:3001
+    env_file: ./chatty_receiver/.env
+
+volumes:
+  mysql_data:
+  redis_data:
+  elasticsearch_data:
+  gem_cache:
