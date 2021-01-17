@@ -1,0 +1,5 @@
+./chatty_api/.env
+./chatty_receiver/.env
+
+./chatty_api/.ruby-version
+./chatty_api/.ruby-gemset
