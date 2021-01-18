@@ -23,7 +23,7 @@ services:
     container_name: rabbitmq
     restart: on-failure
     ports:
-      - "15673:15673"
+      - "8080:15672"
 
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:7.10.2
@@ -48,13 +48,14 @@ services:
     ports:
       - "3000:3000"
     volumes:
-      - .:/app
+      - ./chatty_api:/app
       - gem_cache:/usr/local/bundle/gems
     env_file: ./chatty_api/.env
     stdin_open: true
     tty: true
     environment:
       RAILS_ENV: development
+    command: bundle exec rails s -p 3000 -b 0.0.0.0
 
   sidekiq:
     container_name: chatty_api-sidekiq
@@ -64,14 +65,14 @@ services:
       - mysql
       - redis
     volumes:
-      - .:/app
+      - ./chatty_api:/app
       - gem_cache:/usr/local/bundle/gems
     env_file: ./chatty_api/.env
     stdin_open: true
     tty: true
     environment:
       RAILS_ENV: development
-    entrypoint: ./chatty_api/entrypoints/sidekiq-entrypoint.sh
+    command: bundle exec sidekiq
 
   sneakers:
     container_name: chatty_api-sneakers
@@ -82,14 +83,14 @@ services:
       - rabbitmq
       - redis
     volumes:
-      - .:/app
+      - ./chatty_api:/app
       - gem_cache:/usr/local/bundle/gems
     env_file: ./chatty_api/.env
     stdin_open: true
     tty: true
     environment:
       RAILS_ENV: development
-    entrypoint: ./chatty_api/entrypoints/sneakers-entrypoint.sh
+    command: bundle exec rake sneakers:run
 
   chatty_receiver:
     container_name: chatty_receiver
@@ -102,6 +103,7 @@ services:
     ports:
       - 3001:3001
     env_file: ./chatty_receiver/.env
+    command: go run main.go
 
 volumes:
   mysql_data:
